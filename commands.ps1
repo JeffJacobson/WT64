@@ -1,7 +1,12 @@
+# ESC (Escape) control character
 $e = "$([char]27)"
 
+<#
+.SYNOPSIS
+    Centers a line of text
+#>
 function CenterText([string]$inputLine,[int]$textWidth,[string]$wrapChar) {
-    If (($inputLine.length + ($wrapChar.Length *2)) -ge $textWidth) {
+    if (($inputLine.length + ($wrapChar.Length *2)) -ge $textWidth) {
 
         return -join($wrapChar,$inputLine.Substring(0,$textWidth-2*$wrapChar.Length),$wrapChar)}
     else {
@@ -16,8 +21,13 @@ function CenterText([string]$inputLine,[int]$textWidth,[string]$wrapChar) {
         }
     }
 }
+
+<#
+.SYNOPSIS
+    Left-aligns a line of text
+#>
 function LeftText([string]$inputLine,[int]$textWidth,[string]$wrapChar) {
-    If ($inputLine.length -ge $textWidth) {
+    if ($inputLine.length -ge $textWidth) {
         return -join($inputLine.Substring(0,$textWidth))
     }
     else {
@@ -28,8 +38,12 @@ function LeftText([string]$inputLine,[int]$textWidth,[string]$wrapChar) {
 
 }
 
+<#
+.SYNOPSIS
+    Right-aligns a line of text.
+#>
 function RightText([string]$inputLine,[int]$textWidth,[string]$wrapChar) {
-    If (($inputLine.length+(2*$wrapChar.Length)) -ge $textWidth-1) {
+    if (($inputLine.length+(2*$wrapChar.Length)) -ge $textWidth-1) {
         $trimmed = $textWidth - (2*$wrapChar.Length)
         return -join($wrapChar,$inputLine.Substring(0, $trimmed-2),$wrapChar,"  ")
     }
@@ -41,6 +55,11 @@ function RightText([string]$inputLine,[int]$textWidth,[string]$wrapChar) {
     }
 
 }
+
+<#
+.SYNOPSIS
+    Lists the files in local or path directory in C64 disk style
+#>
 function LIST ([string]$dirName){
     $midWidth = [int] (Get-Host).UI.RawUI.MaxWindowSize.Width - 4
     if ($dirName.Length -gt 0) {
@@ -54,6 +73,11 @@ Get-ChildItem $dirName| ForEach-Object { -join((LeftText ([math]::Round($_.Lengt
 -join((Get-PSDrive c).Free, " BLOCKS FREE.")
 "READY."
 }
+
+<#
+.SYNOPSIS
+    Shows the opening prompt
+#>
 function SYS64738() {
 "$e[0m"
     Clear-Host
@@ -68,6 +92,19 @@ CenterText $line2 ((Get-Host).UI.RawUI.MaxWindowSize.Width)
 "READY."
 }
 
+<#
+.SYNOPSIS
+    Shows the classic loading sequence
+.INPUTS
+    A list constisting of the string "$" and the number 8.
+.EXAMPLE
+    C:>LOAD "$",8
+    LOADING
+    READY.
+.EXAMPLE
+    C:>LOAD "SomeOtherThing",8
+    SYNTAX ERROR
+#>
 function LOAD([string]$inputLn) {
     if ($inputLn -eq '$ 8') {
         "SEARCHING FOR $"
@@ -80,9 +117,28 @@ function LOAD([string]$inputLn) {
         "SYNTAX ERROR"
     }
 }
-function EDIT ($File){
-$File = $File -replace “\\”, “/” -replace “ “, “\ “
-bash -c "nano $File"
+
+<#
+.SYNOPSIS
+    Starts a nano editor session.
+.NOTES
+    Requires bash and nano commands to be present.
+.LINK
+    https://www.nano-editor.org
+#>
+function EDIT ($File) {
+    $neededCommands = "bash","nano"
+    $foundCommands = Get-Command $neededCommands -ErrorAction SilentlyContinue
+    $neededCommands = $($neededCommands -join ', ')
+
+    if (-not $foundCommands) {
+        Write-Error "Could not find the following required commands: $neededCommands"
+    } elseif ($foundCommands.Length -lt $neededCommands.Length) {
+        Write-Error "Required commands: $neededCommands. Only found: $foundCommands"
+    }
+
+    $File = $File -replace “\\”, “/” -replace “ “, “\ “
+    bash -c "nano $File"
 }
 
 
@@ -90,7 +146,7 @@ bash -c "nano $File"
 # Internal commands (should be hidden inside of a module)
 #
 
-$varNameRegEx='([a-zA-Z]+)([\$|\%]?)' # returns name and type
+$varNameRegEx='([a-zA-Z]+)([\$|\%]?)' # returns 1. name and 2. type ($=string,%=integer)
 $expressionRegEx='\s*(\S+)\s*'        # returns expression
 
 function _CalculateExpressionValue([string]$Expression) {
@@ -110,6 +166,10 @@ function _CalculateExpressionValue([string]$Expression) {
 # Public functions = C64 commands
 #
 
+<#
+.SYNOPSIS
+    Performs Invoke-Item on the file.
+#>
 function RUN ($File){
     Invoke-Item $File
 }
