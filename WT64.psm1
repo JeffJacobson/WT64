@@ -120,25 +120,31 @@ function LOAD([string]$inputLn) {
 
 <#
 .SYNOPSIS
-    Starts a nano editor session.
+    Starts either a psedit or nano editor session.
 .NOTES
-    Requires bash and nano commands to be present.
+    Requires either a psedit, or bash and nano commands to be present.
 .LINK
     https://www.nano-editor.org
 #>
 function EDIT ($File) {
+    # Start psedit if it is installed
+    $psEditModule = Get-Module "psedit"
+    if ($psEditModule) {
+        Show-PSEditor $File
+        return
+    }
+
+    # If psedit isn't available, try bash and nano
     $neededCommands = "bash","nano"
     $foundCommands = Get-Command $neededCommands -ErrorAction SilentlyContinue
     $neededCommands = $($neededCommands -join ', ')
 
-    if (-not $foundCommands) {
-        Write-Error "Could not find the following required commands: $neededCommands"
-    } elseif ($foundCommands.Length -lt $neededCommands.Length) {
-        Write-Error "Required commands: $neededCommands. Only found: $foundCommands"
+    if ($foundCommands -and ($foundCommands.Length -eq $neededCommands.Length)) {
+        $File = $File -replace “\\”, “/” -replace “ “, “\ “
+        bash -c "nano $File"
     }
 
-    $File = $File -replace “\\”, “/” -replace “ “, “\ “
-    bash -c "nano $File"
+    Write-Error "None of the supported editors are installed."
 }
 
 
